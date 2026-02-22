@@ -1,0 +1,271 @@
+{
+  "name": "simple-job-application-tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a job application assistant. \n\n### INPUT DATA ###\nCompany: {{ $json.body.company }}\nRole: {{ $json.body.role }}\nStatus: {{ $json.body.status }}\nNotes: {{ $json.body.notes }}\n\n### INSTRUCTIONS ###\n1. Return a clean, professional one-sentence summary of this application.\n2. Suggest a follow-up action in 10 words or less.\n3. Respond ONLY with a valid JSON object. \n4. DO NOT include markdown formatting, backticks (```), or any text before/after the JSON.\n\n### REQUIRED JSON FORMAT ###\n{\"summary\": \"...\", \"follow_up\": \"...\"}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "maxOutputTokens": 200
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        192,
+        0
+      ],
+      "id": "30986c80-4443-4681-878f-8fa92e53b1f8",
+      "name": "AI Prompt",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ijykQHHvWvRuujRK",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst input = $input.first().json;\nlet rawText = \"\";\n\nif (input.content && input.content.parts && input.content.parts[0]) {\n  rawText = input.content.parts[0].text;\n} else if (input.text) {\n  rawText = input.text;\n} else {\n  rawText = JSON.stringify(input);\n}\n\nconst jsonMatch = rawText.match(/\\{[\\s\\S]*\\}/);\nlet parsed = {};\n\nif (jsonMatch) {\n  try {\n    const cleanJson = jsonMatch[0].replace(/\\\\n/g, ' ').trim();\n    parsed = JSON.parse(cleanJson);\n  } catch (e) {\n    parsed = { \n      summary: \"Parsing failed: JSON was likely cut off\", \n      follow_up: \"Check AI token limits\" \n    };\n  }\n}\n\nconst webhook = $(\"Webhook-Local\").first().json;\nconst body = webhook.body || webhook;\n\nreturn [{\n  json: {\n    summary: parsed.summary || \"Summary key not found\",\n    follow_up: parsed.follow_up || \"Follow-up key not found\",\n    company: body.company || \"Unknown\",\n    role: body.role || \"Unknown\",\n    email: body.email || \"Unknown\",\n    date: new Date().toLocaleDateString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        0
+      ],
+      "id": "24b2e628-6e0f-48a8-ad69-31a551bcc8a0",
+      "name": "AI Helper"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1E1wI8dHj4Q6UhvzMA_t3rJZbMNzHCzxgv9gPiuVr2jo",
+          "mode": "list",
+          "cachedResultName": "Job Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1E1wI8dHj4Q6UhvzMA_t3rJZbMNzHCzxgv9gPiuVr2jo/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1E1wI8dHj4Q6UhvzMA_t3rJZbMNzHCzxgv9gPiuVr2jo/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $json.date }}",
+            "Company": "={{ $json.company }}",
+            "Role": "={{ $('Webhook-Local').item.json.body.role }}",
+            "Status": "={{ $('Webhook-Local').item.json.body.status }}",
+            "Summary": "={{ $json.summary }}",
+            "Follow Up": "={{ $json.follow_up }}",
+            "Email": "={{ $('Webhook-Local').item.json.body.email }}"
+          },
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Role",
+              "displayName": "Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Follow Up",
+              "displayName": "Follow Up",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        704,
+        0
+      ],
+      "id": "1958621c-1396-4cbd-a05e-469a00df2cbc",
+      "name": "Post to GSheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "rxu5Brrp7sOvEKJ4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook-Local').item.json.body.email }}",
+        "subject": "=New Application Logged: {{ $json.Company }}",
+        "emailType": "text",
+        "message": "=Company: {{ $('Webhook-Local').item.json.body.company }}\nRole: {{ $('Webhook-Local').item.json.body.role }}\nStatus: {{ $('Webhook-Local').item.json.body.status }}\n\n{{ $('AI Helper').item.json.summary }}\n{{ $('AI Helper').item.json.follow_up }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        0
+      ],
+      "id": "da69b629-9513-4851-a27c-8703e0f64209",
+      "name": "Email Applicant",
+      "webhookId": "67ab1e12-387b-4b74-812c-6a4909c013b7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "KcySUcNA6wEDYE1s",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "job-tracker",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "82201016-17a7-48dc-8268-e42d8f72fe86",
+      "name": "Webhook-Local",
+      "webhookId": "cdbc493b-fc66-4452-8a60-e69f52231d83"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Prompt": {
+      "main": [
+        [
+          {
+            "node": "AI Helper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Helper": {
+      "main": [
+        [
+          {
+            "node": "Post to GSheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to GSheet": {
+      "main": [
+        [
+          {
+            "node": "Email Applicant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook-Local": {
+      "main": [
+        [
+          {
+            "node": "AI Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f425a3db-e8e0-41ff-860d-7ebc96e693e1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9080bbdd2bfe2ab8459fa6ea3d3a2205c9f401925a520962aa5f77459c4690fe"
+  },
+  "id": "RryQCC7VULJUbctn",
+  "tags": []
+}
